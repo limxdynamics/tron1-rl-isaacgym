@@ -66,8 +66,9 @@ class Terrain:
         self.tot_rows = int(cfg.num_rows * self.length_per_env_pixels) + 2 * self.border
 
         self.height_field_raw = np.zeros((self.tot_rows, self.tot_cols), dtype=np.int16)
+        # per-type sub-terrain counters, used by make_terrain() in both curriculum and randomized modes
+        self.terrain_num = np.zeros(7, dtype=np.int16)
         if cfg.curriculum:
-            self.terrain_num = np.zeros(7, dtype=np.int16)
             self.curiculum()
         elif cfg.selected:
             self.selected_terrain()
@@ -170,16 +171,10 @@ class Terrain:
                 self.terrain_num[2] += 1
                 step_height *= -1
                 step_slope *= -1
-                step_width = (
-                    default_step_width
-                    * step_scale[int((self.terrain_num[2] - 1) / self.cfg.num_rows)]
-                )
+                step_width = default_step_width * self._step_scale(step_scale, self.terrain_num[2])
             else:
                 self.terrain_num[3] += 1
-                step_width = (
-                    default_step_width
-                    * step_scale[int((self.terrain_num[3] - 1) / self.cfg.num_rows)]
-                )
+                step_width = default_step_width * self._step_scale(step_scale, self.terrain_num[3])
             terrain_utils.pyramid_stairs_terrain(
                 terrain,
                 step_width=step_width,
@@ -217,6 +212,12 @@ class Terrain:
             pit_terrain(terrain, depth=pit_depth, platform_size=4.0)
 
         return terrain
+
+    def _step_scale(self, step_scale, count):
+        # one step-width scale per column of stairs; reuse the last one if there are more
+        # stairs columns than scales (or more stairs sub-terrains in randomized mode)
+        idx = min(int((count - 1) / self.cfg.num_rows), len(step_scale) - 1)
+        return step_scale[idx]
 
     def add_terrain_to_map(self, terrain, row, col):
         i = row
