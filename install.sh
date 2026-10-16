@@ -264,7 +264,7 @@ install_isaac_gym() {
 }
 
 install_pointfoot_legged_gym() {
-    info "${yellow}开始安装pointfoot-legged-gym..."
+    info "${yellow}开始安装tron1-rl-isaacgym..."
 
     sleep 3
 
@@ -272,21 +272,21 @@ install_pointfoot_legged_gym() {
 
     local conda_env="pointfoot_legged_gym"
     local rl_dir="$HOME/limx_rl"
-    local pointfoot_repo="https://github.com/limxdynamics/pointfoot-legged-gym.git"
+    local pointfoot_repo="https://github.com/limxdynamics/tron1-rl-isaacgym.git"
 
     mkdir -p "$rl_dir"
 
-    # Install pointfoot-legged-gym
-    info "${yellow}安装 pointfoot-legged-gym 库 ..."
+    # Install tron1-rl-isaacgym
+    info "${yellow}安装 tron1-rl-isaacgym 库 ..."
     cd "$rl_dir"
-    if [ ! -d "$rl_dir/pointfoot-legged-gym" ]; then
-        git clone "$pointfoot_repo" pointfoot-legged-gym
-        check_err "${yellow}pointfoot-legged-gym 库失败"
+    if [ ! -d "$rl_dir/tron1-rl-isaacgym" ]; then
+        git clone "$pointfoot_repo" tron1-rl-isaacgym
+        check_err "${yellow}克隆 tron1-rl-isaacgym 库失败"
     fi
-    cd "$rl_dir/pointfoot-legged-gym"
+    cd "$rl_dir/tron1-rl-isaacgym"
     pip install -e .
-    check_err "${yellow}安装 pointfoot-legged-gym 库失败"
-    info "${yellow}安装 pointfoot-legged-gym 库成功"
+    check_err "${yellow}安装 tron1-rl-isaacgym 库失败"
+    info "${yellow}安装 tron1-rl-isaacgym 库成功"
 }
 
 install_basic_tools
