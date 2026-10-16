@@ -4,10 +4,10 @@ from distutils.core import setup
 setup(
     name="legged_gym",
     version="1.0.0",
-    author="Hongxi Wang, Nicolas Rudin",
+    author="Hongxi Wang, LimX Dynamics",
     license="BSD-3-Clause",
     packages=find_packages(),
-    author_email="rudinn@ethz.ch",
-    description="Modified from Isaac Gym environments for Legged Robots",
+    url="https://github.com/limxdynamics/tron1-rl-isaacgym",
+    description="Isaac Gym RL environments for LimX TRON1 (point-foot, sole-foot, wheel-foot), based on legged_gym by Nikita Rudin, ETH Zurich",
     install_requires=["isaacgym", "matplotlib"],
 )

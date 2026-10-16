@@ -118,12 +118,13 @@ def get_load_path(root, load_run=-1, checkpoint=-1):
         last_run = os.path.join(root, runs[-1])
     except:
         raise ValueError("No runs in this directory: " + root)
-    if load_run == -1:
+    # configs and the CLI may pass -1 as int or as the string "-1"
+    if load_run is None or str(load_run) == "-1":
         load_run = last_run
     else:
         load_run = os.path.join(root, load_run)
 
-    if checkpoint == -1:
+    if checkpoint is None or str(checkpoint) == "-1":
         models = [file for file in os.listdir(load_run) if "model" in file]
         models.sort(key=lambda m: "{0:0>15}".format(m))
         model = models[-1]

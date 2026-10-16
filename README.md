@@ -1,82 +1,140 @@
-# English | [中文](README_cn.md)
+English | [中文](README_cn.md)
 
-# tron1-rl-isaacgym
+# TRON1 RL (Isaac Gym)
 
-### Installation ###
-1. Create a new python virtual env with python 3.6, 3.7 or 3.8 (3.8 recommended)
-    - `conda create -n your_virtual_env python=3.8`
-    - `conda activate your_virtual_env`
-    - `pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121`
-2. Install pytorch 1.10 with cuda-12.1:
-    - `pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121`
-3. Install Isaac Gym
-   - Download and install Isaac Gym Preview 3 (Preview 2 will not work!) from https://developer.nvidia.com/isaac-gym
-   - `cd isaacgym/python && pip install -e .`
-   - Try running an example `cd examples && python 1080_balls_of_solitude.py`
-   - For troubleshooting check docs `isaacgym/docs/index.html`) 
-4. Install legged_gym
-    - Clone this repository
-   - `cd legged_gym && pip install -e .`
+**Train locomotion policies for all three LimX TRON1 configurations — point-foot, sole-foot and wheel-foot — with massively parallel reinforcement learning in NVIDIA Isaac Gym.** The trained policies export to ONNX and run unchanged in [MuJoCo](https://github.com/limxdynamics/tron1-mujoco-sim) and on the real robot.
 
-### CODE STRUCTURE ###
-1. Each environment is defined by an env file `pointfoot_flat.py` and a config file `pointfoot_flat_config.py`(take pointfoot for example). The config file contains two classes: one conatianing all the environment parameters (`BipedCfgPF`) and one for the training parameters (`BipedCfgPPOPF`).  
-2. Both env and config classes use inheritance.  
-3. Each non-zero reward scale specified in `cfg` will add a function with a corresponding name to the list of elements which will be summed to get the total reward.  
-4. Tasks must be registered using `task_registry.register(name, EnvClass, EnvConfig, TrainConfig)`. This is done in `envs/__init__.py`, but can also be done from outside of this repository.  
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
+![Python](https://img.shields.io/badge/python-3.8-blue.svg)
+![Isaac Gym](https://img.shields.io/badge/Isaac%20Gym-Preview%204-76b900.svg)
+[![Stars](https://img.shields.io/github/stars/limxdynamics/tron1-rl-isaacgym?style=social)](https://github.com/limxdynamics/tron1-rl-isaacgym/stargazers)
 
-### Usage ###
-1. Train(take pointfoot for example):
+<p align="center">
+  <img src="doc/tron1-isaacgym-demo.gif" width="900" alt="TRON1 point-foot, sole-foot and wheel-foot policies walking and turning">
+  <br>
+  <sub>Policies trained with this repository, played back in MuJoCo (sim-to-sim).</sub>
+</p>
 
-    ```export ROBOT_TYPE=PF_TRON1A```
+## Highlights
 
-    ```python legged_gym/scripts/train.py --task=pointfoot_flat --headless```
-    -  To run on CPU add following arguments: `--sim_device=cpu`, `--rl_device=cpu` (sim on CPU and rl on GPU is possible).
-    -  To run headless (no rendering) add `--headless`.
-    - **Important**: To improve performance, once the training starts press `v` to stop the rendering. You can then enable it later to check the progress.
-    - The trained policy is saved in `pointfoot-legged-gym/logs/<experiment_name>/<ROBOT_TYPE>/<date_time>_<run_name>/model_<iteration>.pt`. Where `<experiment_name>` and `<run_name>` are defined in the train config.
-    -  The following command line arguments override the values set in the config files:
-     - --task TASK: Task name.
-     - --resume:   Resume training from a checkpoint
-     - --experiment_name EXPERIMENT_NAME: Name of the experiment to run or load.
-     - --run_name RUN_NAME:  Name of the run.
-     - --load_run LOAD_RUN:   Name of the run to load when resume=True. If -1: will load the last run.
-     - --checkpoint CHECKPOINT:  Saved model checkpoint number. If -1: will load the last checkpoint.
-     - --num_envs NUM_ENVS:  Number of environments to create.
-     - --seed SEED:  Random seed.
-     - --max_iterations MAX_ITERATIONS:  Maximum number of training iterations.
-2. Play a trained policy:  
-  ```python legged_gym/scripts/play.py --task=pointfoot_flat --load_run your_model_path --checkpoint your_checkpoint```
-    - `load_run` is the folder name which contains your training results, for example `Apr18_15-48-46_`
-    - `checkpoint` is the number of training iteration, for example the checkpoint of `model_10000.pt` is 10000.
+- **One codebase, three robots.** Point-foot, sole-foot (with ankles) and wheel-foot TRON1, selected with a single environment variable.
+- **Train → sim-to-sim → real.** Export to ONNX, verify in MuJoCo, then deploy with the official ROS / ROS 2 / Python controllers.
+- **Thousands of parallel environments** (8192 by default) on a single GPU, built on [legged_gym](https://github.com/leggedrobotics/legged_gym) and [rsl_rl](https://github.com/leggedrobotics/rsl_rl).
+- **Want to see it first?** Pre-trained Isaac Gym policies for every configuration ship with [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python/tree/main/controllers/model) — run them in MuJoCo without training anything.
 
+## Supported robots
 
-### Known Issues ###
-1. The contact forces reported by `net_contact_force_tensor` are unreliable when simulating on GPU with a triangle mesh terrain. A workaround is to use force sensors, but the force are propagated through the sensors of consecutive bodies resulting in an undesireable behaviour. However, for a legged robot it is possible to add sensors to the feet/end effector only and get the expected results. When using the force sensors make sure to exclude gravity from trhe reported forces with `sensor_options.enable_forward_dynamics_forces`. Example:
+All configurations are trained with the same command and `--task=pointfoot_flat`; `ROBOT_TYPE` picks the robot, environment and reward set.
+
+| Configuration | `ROBOT_TYPE` | Environment | Default iterations |
+|---|---|---|---|
+| Point-foot | `PF_TRON1A` (also `PF_P441A`, `PF_P441B`, `PF_P441C`, `PF_P441C2`) | `envs/pointfoot_flat` | 15000 |
+| Sole-foot | `SF_TRON1A` | `envs/solefoot_flat` | 10000 |
+| Wheel-foot | `WF_TRON1A` | `envs/wheelfoot_flat` | 8000 |
+
+## How it fits together
+
 ```
-    sensor_pose = gymapi.Transform()
-    for name in feet_names:
-        sensor_options = gymapi.ForceSensorProperties()
-        sensor_options.enable_forward_dynamics_forces = False # for example gravity
-        sensor_options.enable_constraint_solver_forces = True # for example contacts
-        sensor_options.use_world_frame = True # report forces in world frame (easier to get vertical components)
-        index = self.gym.find_asset_rigid_body_index(robot_asset, name)
-        self.gym.create_asset_force_sensor(robot_asset, index, sensor_pose, sensor_options)
-    (...)
-
-    sensor_tensor = self.gym.acquire_force_sensor_tensor(self.sim)
-    self.gym.refresh_force_sensor_tensor(self.sim)
-    force_sensor_readings = gymtorch.wrap_tensor(sensor_tensor)
-    self.sensor_forces = force_sensor_readings.view(self.num_envs, 4, 6)[..., :3]
-    (...)
-
-    self.gym.refresh_force_sensor_tensor(self.sim)
-    contact = self.sensor_forces[:, :, 2] > 1.
+tron1-robot-description ──► tron1-rl-isaacgym ──► ONNX policy ──► tron1-mujoco-sim ──► tron1-rl-deploy-{ros, ros2, python} ──► TRON1
+      (robot models)          (train here)                       (sim-to-sim check)          (run on the real robot)
 ```
+
+## Installation
+
+Requirements: Linux with an NVIDIA GPU and driver that supports CUDA 12.1.
+
+1. Create a Python 3.8 environment (Isaac Gym supports Python 3.6–3.8):
+   ```bash
+   conda create -n tron1_rl python=3.8 -y
+   conda activate tron1_rl
+   ```
+2. Install PyTorch with CUDA 12.1:
+   ```bash
+   pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
+   ```
+3. Install Isaac Gym Preview 4 (Preview 2 will not work). Download it from [NVIDIA](https://developer.nvidia.com/isaac-gym), then:
+   ```bash
+   cd isaacgym/python && pip install -e .
+   pip install "numpy<1.24"   # Isaac Gym uses np.float, which was removed in NumPy 1.24
+   cd examples && python 1080_balls_of_solitude.py   # sanity check
+   ```
+   For troubleshooting, see `isaacgym/docs/index.html`.
+4. Install this repository and the logging / export dependencies:
+   ```bash
+   git clone https://github.com/limxdynamics/tron1-rl-isaacgym.git
+   cd tron1-rl-isaacgym && pip install -e .
+   pip install onnx tensorboard==2.12.0
+   ```
+
+On a fresh Ubuntu machine, [`install.sh`](install.sh) automates these steps, including the NVIDIA driver and Anaconda. It installs everything under `~/limx_rl` in a conda environment named `pointfoot_legged_gym`.
+
+## Usage
+
+### Train
+
+```bash
+export ROBOT_TYPE=PF_TRON1A        # or SF_TRON1A / WF_TRON1A
+python legged_gym/scripts/train.py --task=pointfoot_flat --headless
+```
+
+- `--headless` disables rendering. If you keep the viewer open, press `v` to pause rendering and speed up training.
+- On a smaller GPU, reduce the number of environments with `--num_envs 4096`.
+- To run on CPU: `--sim_device=cpu --rl_device=cpu` (simulating on CPU and learning on GPU also works).
+- Checkpoints are saved to `logs/pointfoot_flat/<experiment_name>/<date_time>_<run_name>/model_<iteration>.pt`. `experiment_name` defaults to the `ROBOT_TYPE`.
+
+Common arguments (override the values in the config files):
+
+| Argument | Meaning |
+|---|---|
+| `--resume` | Resume training from a checkpoint |
+| `--load_run RUN` | Run folder to load; defaults to the latest run |
+| `--checkpoint N` | Checkpoint iteration to load; defaults to the latest checkpoint |
+| `--experiment_name NAME` / `--run_name NAME` | Name of the experiment / run |
+| `--num_envs N` | Number of parallel environments |
+| `--max_iterations N` | Maximum training iterations |
+| `--seed SEED` | Random seed |
+
+### Play and export
+
+```bash
+python legged_gym/scripts/play.py --task=pointfoot_flat                       # latest run, latest checkpoint
+python legged_gym/scripts/play.py --task=pointfoot_flat --load_run Apr18_15-48-46_ --checkpoint 10000
+```
+
+- `load_run` is the run folder name; `checkpoint` is the iteration number, e.g. `10000` for `model_10000.pt`.
+- "Latest run" is the last folder in alphabetical order. Folder names start with the month (`Apr…`, `Oct…`), so pass `--load_run` explicitly if your runs span several months.
+- `play.py` also exports the policy to `logs/pointfoot_flat/<experiment_name>/exported/policies/` as `policy.onnx` and `encoder.onnx`.
+
+### Deploy
+
+Copy `policy.onnx` and `encoder.onnx` into `controllers/model/<ROBOT_TYPE>/policy/isaacgym/` of [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) and run it with `export RL_TYPE=isaacgym`. Check the behaviour in [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) first, then run it on the robot. For ROS / ROS 2, follow the README of [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) / [tron1-rl-deploy-ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2).
+
+## Code structure
+
+- Each environment is defined by an env file and a config file, e.g. `pointfoot_flat.py` and `pointfoot_flat_config.py`. The config holds the environment parameters (`BipedCfgPF`) and the training parameters (`BipedCfgPPOPF`); both use inheritance.
+- Every non-zero reward scale in the config adds the reward function with the matching name to the total reward.
+- Tasks are registered with `task_registry.register(name, EnvClass, EnvConfig, TrainConfig)` in `legged_gym/envs/__init__.py`, or from outside the repository.
+
+## Related repositories
+
+| Repository | Description |
+|---|---|
+| [tron1-robot-description](https://github.com/limxdynamics/tron1-robot-description) | TRON1 URDF / MJCF models |
+| [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) | RL training on Isaac Lab, the actively developed successor of Isaac Gym |
+| [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) | MuJoCo simulator for sim-to-sim validation |
+| [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) | Policy deployment in Python, with pre-trained policies |
+| [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) / [ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) | Policy deployment on ROS / ROS 2 |
+
+New to TRON1 RL and not tied to Isaac Gym? NVIDIA has deprecated Isaac Gym in favour of Isaac Lab; consider starting with [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab).
+
+## Known issues
+
+When simulating on GPU with a triangle-mesh terrain, the contact forces reported by `net_contact_force_tensor` are unreliable. See the [legged_gym known issues](https://github.com/leggedrobotics/legged_gym#known-issues) for the force-sensor workaround.
 
 ## Acknowledgment
 
-The implementation of Humanoid-Gym relies on resources from [legged_gym](https://github.com/leggedrobotics/legged_gym) and [rsl_rl](https://github.com/leggedrobotics/rsl_rl) projects, created by the Robotic Systems Lab. We specifically utilize the `LeggedRobot` implementation from their research to enhance our codebase.
+This project builds on [legged_gym](https://github.com/leggedrobotics/legged_gym) and [rsl_rl](https://github.com/leggedrobotics/rsl_rl) by the Robotic Systems Lab, ETH Zurich. We use their `LeggedRobot` implementation as the foundation of our environments.
 
-## Any Questions?
+## Questions?
 
-If you have any more questions, please create an issue in this repository.
+Please [open an issue](https://github.com/limxdynamics/tron1-rl-isaacgym/issues). If this project helps your work, a ⭐ helps others find it.
