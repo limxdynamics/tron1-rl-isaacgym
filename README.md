@@ -52,19 +52,21 @@ Requirements: Linux with an NVIDIA GPU and driver that supports CUDA 12.1.
    ```bash
    pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
    ```
-3. Install Isaac Gym Preview 4 (Preview 3 also works; Preview 2 does not). Download it from [NVIDIA](https://developer.nvidia.com/isaac-gym), then:
+3. Install Isaac Gym Preview 4 (Preview 2 will not work). Download it from [NVIDIA](https://developer.nvidia.com/isaac-gym), then:
    ```bash
    cd isaacgym/python && pip install -e .
+   pip install "numpy<1.24"   # Isaac Gym uses np.float, which was removed in NumPy 1.24
    cd examples && python 1080_balls_of_solitude.py   # sanity check
    ```
    For troubleshooting, see `isaacgym/docs/index.html`.
-4. Install this repository:
+4. Install this repository and the logging / export dependencies:
    ```bash
    git clone https://github.com/limxdynamics/tron1-rl-isaacgym.git
    cd tron1-rl-isaacgym && pip install -e .
+   pip install onnx tensorboard==2.12.0
    ```
 
-On a fresh Ubuntu machine, [`install.sh`](install.sh) automates these steps, including the NVIDIA driver and Anaconda.
+On a fresh Ubuntu machine, [`install.sh`](install.sh) automates these steps, including the NVIDIA driver and Anaconda. It installs everything under `~/limx_rl` in a conda environment named `pointfoot_legged_gym`.
 
 ## Usage
 
@@ -85,8 +87,8 @@ Common arguments (override the values in the config files):
 | Argument | Meaning |
 |---|---|
 | `--resume` | Resume training from a checkpoint |
-| `--load_run RUN` | Run folder to load when resuming (`-1` = latest) |
-| `--checkpoint N` | Checkpoint iteration to load (`-1` = latest) |
+| `--load_run RUN` | Run folder to load; defaults to the latest run |
+| `--checkpoint N` | Checkpoint iteration to load; defaults to the latest checkpoint |
 | `--experiment_name NAME` / `--run_name NAME` | Name of the experiment / run |
 | `--num_envs N` | Number of parallel environments |
 | `--max_iterations N` | Maximum training iterations |
@@ -95,15 +97,17 @@ Common arguments (override the values in the config files):
 ### Play and export
 
 ```bash
-python legged_gym/scripts/play.py --task=pointfoot_flat --load_run <run_folder> --checkpoint <iteration>
+python legged_gym/scripts/play.py --task=pointfoot_flat                       # latest run, latest checkpoint
+python legged_gym/scripts/play.py --task=pointfoot_flat --load_run Apr18_15-48-46_ --checkpoint 10000
 ```
 
-- `load_run` is the run folder name, e.g. `Apr18_15-48-46_`; `checkpoint` is the iteration number, e.g. `10000` for `model_10000.pt`.
+- `load_run` is the run folder name; `checkpoint` is the iteration number, e.g. `10000` for `model_10000.pt`.
+- "Latest run" is the last folder in alphabetical order. Folder names start with the month (`Apr…`, `Oct…`), so pass `--load_run` explicitly if your runs span several months.
 - `play.py` also exports the policy to `logs/pointfoot_flat/<experiment_name>/exported/policies/` as `policy.onnx` and `encoder.onnx`.
 
 ### Deploy
 
-Copy `policy.onnx` and `encoder.onnx` into `controllers/model/<ROBOT_TYPE>/policy/isaacgym/` of [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) (or the ROS / ROS 2 equivalent), check the behaviour in [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim), then run it on the robot.
+Copy `policy.onnx` and `encoder.onnx` into `controllers/model/<ROBOT_TYPE>/policy/isaacgym/` of [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) and run it with `export RL_TYPE=isaacgym`. Check the behaviour in [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) first, then run it on the robot. For ROS / ROS 2, follow the README of [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) / [tron1-rl-deploy-ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2).
 
 ## Code structure
 
@@ -121,7 +125,7 @@ Copy `policy.onnx` and `encoder.onnx` into `controllers/model/<ROBOT_TYPE>/polic
 | [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) | Policy deployment in Python, with pre-trained policies |
 | [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) / [ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) | Policy deployment on ROS / ROS 2 |
 
-New to TRON1 RL and not tied to Isaac Gym? Isaac Gym is no longer updated by NVIDIA; consider starting with [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab).
+New to TRON1 RL and not tied to Isaac Gym? NVIDIA has deprecated Isaac Gym in favour of Isaac Lab; consider starting with [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab).
 
 ## Known issues
 

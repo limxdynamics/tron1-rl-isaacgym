@@ -52,19 +52,21 @@ tron1-robot-description ──► tron1-rl-isaacgym ──► ONNX 策略 ──
    ```bash
    pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
    ```
-3. 安装 Isaac Gym Preview 4（Preview 3 也可以，Preview 2 不行）。从 [NVIDIA 官网](https://developer.nvidia.com/isaac-gym) 下载后：
+3. 安装 Isaac Gym Preview 4（Preview 2 不可用）。从 [NVIDIA 官网](https://developer.nvidia.com/isaac-gym) 下载后：
    ```bash
    cd isaacgym/python && pip install -e .
+   pip install "numpy<1.24"   # Isaac Gym 用到了 np.float，NumPy 1.24 起已移除
    cd examples && python 1080_balls_of_solitude.py   # 验证安装
    ```
    遇到问题请查看 `isaacgym/docs/index.html`。
-4. 安装本仓库：
+4. 安装本仓库，以及日志和导出所需的依赖：
    ```bash
    git clone https://github.com/limxdynamics/tron1-rl-isaacgym.git
    cd tron1-rl-isaacgym && pip install -e .
+   pip install onnx tensorboard==2.12.0
    ```
 
-在全新的 Ubuntu 机器上，可以用 [`install.sh`](install.sh) 一键完成上述步骤（包括 NVIDIA 驱动和 Anaconda）。
+在全新的 Ubuntu 机器上，可以用 [`install.sh`](install.sh) 一键完成上述步骤（包括 NVIDIA 驱动和 Anaconda），所有内容会装在 `~/limx_rl` 下，conda 环境名为 `pointfoot_legged_gym`。
 
 ## 使用方法
 
@@ -85,8 +87,8 @@ python legged_gym/scripts/train.py --task=pointfoot_flat --headless
 | 参数 | 含义 |
 |---|---|
 | `--resume` | 从 checkpoint 继续训练 |
-| `--load_run RUN` | 继续训练时加载的运行目录（`-1` 表示最新） |
-| `--checkpoint N` | 加载的迭代次数（`-1` 表示最新） |
+| `--load_run RUN` | 要加载的运行目录，默认最新一次 |
+| `--checkpoint N` | 要加载的迭代次数，默认最新一个 |
 | `--experiment_name NAME` / `--run_name NAME` | 实验名 / 运行名 |
 | `--num_envs N` | 并行环境数 |
 | `--max_iterations N` | 最大训练迭代次数 |
@@ -95,15 +97,17 @@ python legged_gym/scripts/train.py --task=pointfoot_flat --headless
 ### 运行与导出
 
 ```bash
-python legged_gym/scripts/play.py --task=pointfoot_flat --load_run <run_folder> --checkpoint <iteration>
+python legged_gym/scripts/play.py --task=pointfoot_flat                       # 最新一次运行、最新模型
+python legged_gym/scripts/play.py --task=pointfoot_flat --load_run Apr18_15-48-46_ --checkpoint 10000
 ```
 
-- `load_run` 是训练结果所在的目录名，例如 `Apr18_15-48-46_`；`checkpoint` 是迭代次数，例如 `model_10000.pt` 对应 `10000`。
+- `load_run` 是训练结果所在的目录名；`checkpoint` 是迭代次数，例如 `model_10000.pt` 对应 `10000`。
+- "最新一次运行"指按字母顺序排在最后的目录。目录名以英文月份开头（`Apr…`、`Oct…`），跨月训练时请显式指定 `--load_run`。
 - `play.py` 同时会把策略导出到 `logs/pointfoot_flat/<experiment_name>/exported/policies/`，生成 `policy.onnx` 和 `encoder.onnx`。
 
 ### 部署
 
-把 `policy.onnx` 和 `encoder.onnx` 复制到 [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python)（或对应的 ROS / ROS 2 仓库）的 `controllers/model/<ROBOT_TYPE>/policy/isaacgym/` 目录，先在 [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) 中验证效果，再上真机。
+把 `policy.onnx` 和 `encoder.onnx` 复制到 [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) 的 `controllers/model/<ROBOT_TYPE>/policy/isaacgym/` 目录，运行时设置 `export RL_TYPE=isaacgym`。先在 [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) 中验证效果，再上真机。ROS / ROS 2 部署请参考 [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) / [tron1-rl-deploy-ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) 的 README。
 
 ## 代码结构
 
@@ -121,7 +125,7 @@ python legged_gym/scripts/play.py --task=pointfoot_flat --load_run <run_folder> 
 | [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) | Python 策略部署，含预训练策略 |
 | [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) / [ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) | ROS / ROS 2 策略部署 |
 
-刚接触 TRON1 RL、并且不一定要用 Isaac Gym？NVIDIA 已不再更新 Isaac Gym，建议从 [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) 开始。
+刚接触 TRON1 RL、并且不一定要用 Isaac Gym？NVIDIA 已宣布 Isaac Gym 停止维护、改推 Isaac Lab，建议从 [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) 开始。
 
 ## 已知问题
 
