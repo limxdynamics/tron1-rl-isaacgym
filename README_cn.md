@@ -32,12 +32,34 @@
 | 足板 | `SF_TRON1A` | `envs/solefoot_flat` | 10000 |
 | 轮足 | `WF_TRON1A` | `envs/wheelfoot_flat` | 8000 |
 
-## 整体流程
+## TRON1 开源生态
+
+TRON1 有一整套开源仓库，覆盖从机器人模型到真机运行的全流程。这里是总导航，其他 TRON1 仓库都会链接到这里。
 
 ```
-tron1-robot-description ──► tron1-rl-isaacgym ──► ONNX 策略 ──► tron1-mujoco-sim ──► tron1-rl-deploy-{ros, ros2, python} ──► TRON1
-       （机器人模型）          （在这里训练）                     （sim-to-sim 验证）          （真机运行）
+tron1-robot-description ──► tron1-rl-isaaclab / tron1-rl-isaacgym ──► ONNX 策略 ──► tron1-mujoco-sim ──► tron1-rl-deploy-{ros, ros2, python} ──► TRON1
+       （机器人模型）                    （训练）                                     （sim-to-sim 验证）          （真机运行）
 ```
+
+**从哪里开始**
+
+- **还没有机器人？** 在 [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) 里运行 [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) 自带的预训练策略，不用训练就能看到效果。
+- **训练自己的策略：** 新项目建议用 [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab)（NVIDIA 已停止维护 Isaac Gym、改推 Isaac Lab）；已经在用 Isaac Gym 的话，用本仓库即可。
+- **在真机上运行：** 用 [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros)、[tron1-rl-deploy-ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) 或 [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) 部署导出的 ONNX 策略。
+
+| 环节 | 仓库 | 作用 |
+|---|---|---|
+| 机器人模型 | [tron1-robot-description](https://github.com/limxdynamics/tron1-robot-description) | URDF / Xacro / MJCF 模型，支持 ROS 1/2、MuJoCo、Gazebo |
+| 仿真 | [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) | MuJoCo 仿真器，接口和真机一致（`limxsdk`） |
+| 仿真 | [tron1-gazebo-ros](https://github.com/limxdynamics/tron1-gazebo-ros) · [tron1-gazebo-ros2](https://github.com/limxdynamics/tron1-gazebo-ros2) | Gazebo 仿真，ROS Noetic · ROS 2 Iron |
+| 训练 | [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) | 基于 Isaac Lab 的 RL 训练，新项目推荐 |
+| 训练 | **tron1-rl-isaacgym**（本仓库） | 基于 Isaac Gym 的 RL 训练 |
+| 部署 | [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) | Python 部署，含预训练策略 |
+| 部署 | [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) · [tron1-rl-deploy-ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) | ROS Noetic · ROS 2 Iron 部署 |
+| 部署 | [tron1-rl-deploy-arm](https://github.com/limxdynamics/tron1-rl-deploy-arm) | 带机械臂的 TRON1 RL 部署 |
+| 应用 | [tron1-ss](https://github.com/limxdynamics/tron1-ss) | 激光 SLAM 与导航：建图、定位、路径规划 |
+| 应用 | [tron1-agent](https://github.com/limxdynamics/tron1-agent) | 语音交互 AI Agent：语音指令、大模型对话、机器人动作 |
+| SDK | [limxsdk-lowlevel](https://github.com/limxdynamics/limxsdk-lowlevel) | 底层运动控制 SDK（C++ / Python），仿真和部署代码都依赖它 |
 
 ## 安装
 
@@ -114,18 +136,6 @@ python legged_gym/scripts/play.py --task=pointfoot_flat --load_run Apr18_15-48-4
 - 每个环境由一个环境文件和一个配置文件定义，例如 `pointfoot_flat.py` 和 `pointfoot_flat_config.py`。配置文件包含环境参数（`BipedCfgPF`）和训练参数（`BipedCfgPPOPF`）两个类，均使用继承。
 - 配置中每个非零的奖励系数，都会把同名的奖励函数加入总奖励。
 - 任务通过 `task_registry.register(name, EnvClass, EnvConfig, TrainConfig)` 注册，位置在 `legged_gym/envs/__init__.py`，也可以在仓库外部注册。
-
-## 相关仓库
-
-| 仓库 | 描述 |
-|---|---|
-| [tron1-robot-description](https://github.com/limxdynamics/tron1-robot-description) | TRON1 URDF / MJCF 模型 |
-| [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) | 基于 Isaac Lab 的 RL 训练（Isaac Gym 的后继，持续更新） |
-| [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) | MuJoCo 仿真，用于 sim-to-sim 验证 |
-| [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) | Python 策略部署，含预训练策略 |
-| [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) / [ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) | ROS / ROS 2 策略部署 |
-
-刚接触 TRON1 RL、并且不一定要用 Isaac Gym？NVIDIA 已宣布 Isaac Gym 停止维护、改推 Isaac Lab，建议从 [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) 开始。
 
 ## 已知问题
 
