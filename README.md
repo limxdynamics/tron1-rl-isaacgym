@@ -32,12 +32,34 @@ All configurations are trained with the same command and `--task=pointfoot_flat`
 | Sole-foot | `SF_TRON1A` | `envs/solefoot_flat` | 10000 |
 | Wheel-foot | `WF_TRON1A` | `envs/wheelfoot_flat` | 8000 |
 
-## How it fits together
+## TRON1 open-source ecosystem
+
+TRON1 is supported by a set of open-source repositories, from robot models to the real robot. This section is the map; the other TRON1 repositories link back here.
 
 ```
-tron1-robot-description ──► tron1-rl-isaacgym ──► ONNX policy ──► tron1-mujoco-sim ──► tron1-rl-deploy-{ros, ros2, python} ──► TRON1
-      (robot models)          (train here)                       (sim-to-sim check)          (run on the real robot)
+tron1-robot-description ──► tron1-rl-isaaclab / tron1-rl-isaacgym ──► ONNX policy ──► tron1-mujoco-sim ──► tron1-rl-deploy-{ros, ros2, python} ──► TRON1
+      (robot models)                  (train)                                       (sim-to-sim check)          (run on the real robot)
 ```
+
+**Where to start**
+
+- **No robot yet?** Run the pre-trained policies from [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) in [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim). Nothing to train.
+- **Train your own policy:** start new projects with [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) (NVIDIA has deprecated Isaac Gym in favour of Isaac Lab), or use this repository if you already work with Isaac Gym.
+- **Run on the robot:** deploy the exported ONNX policy with [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros), [tron1-rl-deploy-ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) or [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python).
+
+| Stage | Repository | What it does |
+|---|---|---|
+| Robot model | [tron1-robot-description](https://github.com/limxdynamics/tron1-robot-description) | URDF / Xacro / MJCF models for ROS 1/2, MuJoCo and Gazebo |
+| Simulation | [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) | MuJoCo simulator with the same `limxsdk` interface as the robot |
+| Simulation | [tron1-gazebo-ros](https://github.com/limxdynamics/tron1-gazebo-ros) · [tron1-gazebo-ros2](https://github.com/limxdynamics/tron1-gazebo-ros2) | Gazebo simulation on ROS Noetic · ROS 2 Iron |
+| Training | [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) | RL training on Isaac Lab, recommended for new projects |
+| Training | **tron1-rl-isaacgym** (this repository) | RL training on Isaac Gym |
+| Deployment | [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) | Python deployment, with pre-trained policies |
+| Deployment | [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) · [tron1-rl-deploy-ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) | Deployment on ROS Noetic · ROS 2 Iron |
+| Deployment | [tron1-rl-deploy-arm](https://github.com/limxdynamics/tron1-rl-deploy-arm) | RL deployment for TRON1 with the arm |
+| Applications | [tron1-ss](https://github.com/limxdynamics/tron1-ss) | LiDAR SLAM and navigation: mapping, localization, path planning |
+| Applications | [tron1-agent](https://github.com/limxdynamics/tron1-agent) | Voice-interactive AI agent: speech commands, LLM dialogue, robot actions |
+| SDK | [limxsdk-lowlevel](https://github.com/limxdynamics/limxsdk-lowlevel) | Low-level motion control SDK (C++ / Python) used by the simulators and deployment code |
 
 ## Installation
 
@@ -114,18 +136,6 @@ Copy `policy.onnx` and `encoder.onnx` into `controllers/model/<ROBOT_TYPE>/polic
 - Each environment is defined by an env file and a config file, e.g. `pointfoot_flat.py` and `pointfoot_flat_config.py`. The config holds the environment parameters (`BipedCfgPF`) and the training parameters (`BipedCfgPPOPF`); both use inheritance.
 - Every non-zero reward scale in the config adds the reward function with the matching name to the total reward.
 - Tasks are registered with `task_registry.register(name, EnvClass, EnvConfig, TrainConfig)` in `legged_gym/envs/__init__.py`, or from outside the repository.
-
-## Related repositories
-
-| Repository | Description |
-|---|---|
-| [tron1-robot-description](https://github.com/limxdynamics/tron1-robot-description) | TRON1 URDF / MJCF models |
-| [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab) | RL training on Isaac Lab, the actively developed successor of Isaac Gym |
-| [tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) | MuJoCo simulator for sim-to-sim validation |
-| [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python) | Policy deployment in Python, with pre-trained policies |
-| [tron1-rl-deploy-ros](https://github.com/limxdynamics/tron1-rl-deploy-ros) / [ros2](https://github.com/limxdynamics/tron1-rl-deploy-ros2) | Policy deployment on ROS / ROS 2 |
-
-New to TRON1 RL and not tied to Isaac Gym? NVIDIA has deprecated Isaac Gym in favour of Isaac Lab; consider starting with [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab).
 
 ## Known issues
 
