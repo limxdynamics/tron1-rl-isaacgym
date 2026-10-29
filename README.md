@@ -1,36 +1,72 @@
-English | [中文](README_cn.md)
+<p align="center">
+  <img src="doc/banner.png" alt="TRON1 RL on Isaac Gym: point-foot, sole-foot and wheel-foot policies trained in parallel" width="100%">
+</p>
+
+<p align="center">
+  <b>English</b> | <a href="README_cn.md">中文</a>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-BSD--3--Clause-2f6feb" alt="License: BSD-3-Clause"></a>
+  <img src="https://img.shields.io/badge/Isaac%20Gym-Preview%204-76b900" alt="Isaac Gym Preview 4">
+  <img src="https://img.shields.io/badge/Python-3.8-2f6feb" alt="Python 3.8">
+  <img src="https://img.shields.io/badge/PyTorch-2.2%20%2F%20CUDA%2012.1-ee4c2c" alt="PyTorch 2.2 / CUDA 12.1">
+</p>
 
 # TRON1 RL (Isaac Gym)
 
-**Train locomotion policies for all three LimX TRON1 configurations — point-foot, sole-foot and wheel-foot — with massively parallel reinforcement learning in NVIDIA Isaac Gym.** The trained policies export to ONNX and run unchanged in [MuJoCo](https://github.com/limxdynamics/tron1-mujoco-sim) and on the real robot.
+Train locomotion policies for all three LimX TRON1 configurations — point-foot,
+sole-foot and wheel-foot — with 8192 environments in parallel on a single GPU.
+The trained actor exports to ONNX and runs unchanged in
+[tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) and on the robot.
 
-[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.8-blue.svg)
-![Isaac Gym](https://img.shields.io/badge/Isaac%20Gym-Preview%204-76b900.svg)
-[![Stars](https://img.shields.io/github/stars/limxdynamics/tron1-rl-isaacgym?style=social)](https://github.com/limxdynamics/tron1-rl-isaacgym/stargazers)
-
-<p align="center">
-  <img src="doc/tron1-isaacgym-demo.gif" width="900" alt="TRON1 point-foot, sole-foot and wheel-foot policies walking and turning">
-  <br>
-  <sub>Policies trained with this repository, played back in MuJoCo (sim-to-sim).</sub>
-</p>
+**Scope.** This is the Isaac Gym trainer, kept for people already working in Isaac
+Gym. NVIDIA has deprecated it in favour of Isaac Lab; new projects should start
+from [tron1-rl-isaaclab](https://github.com/limxdynamics/tron1-rl-isaaclab). The
+policy interface and the deployment path are the same.
 
 ## Highlights
 
-- **One codebase, three robots.** Point-foot, sole-foot (with ankles) and wheel-foot TRON1, selected with a single environment variable.
-- **Train → sim-to-sim → real.** Export to ONNX, verify in MuJoCo, then deploy with the official ROS / ROS 2 / Python controllers.
-- **Thousands of parallel environments** (8192 by default) on a single GPU, built on [legged_gym](https://github.com/leggedrobotics/legged_gym) and [rsl_rl](https://github.com/leggedrobotics/rsl_rl).
-- **Want to see it first?** Pre-trained Isaac Gym policies for every configuration ship with [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python/tree/main/controllers/model) — run them in MuJoCo without training anything.
+- **One codebase, three robots.** Point-foot, sole-foot (parallel-linkage ankles)
+  and wheel-foot (driven wheels) share the training loop; `ROBOT_TYPE` picks the
+  environment, the reward set and the actuator config.
+- **8192 environments per GPU.** 196,608 transitions per iteration, 24 env steps
+  apart, so a policy sees minutes of walking per update instead of seconds.
+- **Train → sim-to-sim → real.** `play.py` exports `policy.onnx` and
+  `encoder.onnx`; the same files drop into MuJoCo for a second physics check and
+  then onto the robot.
+- **No policy to train.** Pre-trained Isaac Gym policies for every configuration
+  ship with
+  [tron1-rl-deploy-python](https://github.com/limxdynamics/tron1-rl-deploy-python/tree/main/controllers/model)
+  — watch them walk without a GPU.
 
-## Supported robots
+## Configurations
 
-All configurations are trained with the same command and `--task=pointfoot_flat`; `ROBOT_TYPE` picks the robot, environment and reward set.
+Each card is rendered from that model's URDF in `resources/robots/`. The numbers
+come from the three `*_config.py` files: all three train at **50 Hz**, reached by
+`decimation × dt` (4 × 5 ms, 8 × 2.5 ms, 4 × 5 ms), which is the same control rate
+the shipped deployment code uses (500 Hz loop, decimation 10).
 
-| Configuration | `ROBOT_TYPE` | Environment | Default iterations |
-|---|---|---|---|
-| Point-foot | `PF_TRON1A` (also `PF_P441A`, `PF_P441B`, `PF_P441C`, `PF_P441C2`) | `envs/pointfoot_flat` | 15000 |
-| Sole-foot | `SF_TRON1A` | `envs/solefoot_flat` | 10000 |
-| Wheel-foot | `WF_TRON1A` | `envs/wheelfoot_flat` | 8000 |
+| Rendering | Configuration | Description | DOF | Format |
+|:--:|---|---|:--:|---|
+| <img src="doc/model-pointfoot.png" width="320" alt="TRON1 point-foot model rendered from its URDF"> | **Point-foot**<br>`PF_TRON1A` | Ball feet, six actuated joints. Also covers the `PF_P441*` variants. | 6 | URDF/STL |
+| <img src="doc/model-solefoot.png" width="320" alt="TRON1 sole-foot model rendered from its URDF"> | **Sole-foot**<br>`SF_TRON1A` | Flat feet on parallel-linkage ankles; two extra joints to balance. | 8 | URDF/STL |
+| <img src="doc/model-wheelfoot.png" width="320" alt="TRON1 wheel-foot model rendered from its URDF"> | **Wheel-foot**<br>`WF_TRON1A` | Driven wheels instead of feet; the wheel joints are part of the action space. | 8 | URDF/STL |
+
+| | Point-foot | Sole-foot | Wheel-foot |
+|---|:--:|:--:|:--:|
+| `ROBOT_TYPE` | `PF_TRON1A`, `PF_P441A`…`C2` | `SF_TRON1A` | `WF_TRON1A` |
+| `num_envs` | 8192 | 8192 | 8192 |
+| Observations per step | 30 | 36 | 28 |
+| Observation history | × 10 | × 5 | × 10 |
+| Actor input (obs + latent + command) | 36 | 44 | 34 |
+| Actions | 6 | 8 | 8 |
+| Commands | 3 | 5 | 3 |
+| `max_iterations` | 15000 | 10000 | 8000 |
+
+All three are trained with the same command and task name —
+`--task=pointfoot_flat` — because `ROBOT_TYPE` selects the environment module at
+import time (`legged_gym/envs/__init__.py`).
 
 ## TRON1 open-source ecosystem
 
@@ -60,6 +96,46 @@ tron1-robot-description ──► tron1-rl-isaaclab / tron1-rl-isaacgym ──�
 | Applications | [tron1-ss](https://github.com/limxdynamics/tron1-ss) | LiDAR SLAM and navigation: mapping, localization, path planning |
 | Applications | [tron1-agent](https://github.com/limxdynamics/tron1-agent) | Voice-interactive AI agent: speech commands, LLM dialogue, robot actions |
 | SDK | [limxsdk-lowlevel](https://github.com/limxdynamics/limxsdk-lowlevel) | Low-level motion control SDK (C++ / Python) used by the simulators and deployment code |
+
+## What the policy sees
+
+The observation is assembled in `compute_group_observations()`: eight fields
+concatenated in a fixed order, nothing normalised away. The history stack is what
+gives the encoder its temporal window — 30 numbers × 10 steps for point-foot.
+
+<p align="center">
+  <img src="doc/obs-en.png" alt="Observation layout: base angular velocity, projected gravity, joint offsets, joint velocities, last actions, clock sin/cos and gait parameters, stacked over 10 steps, encoded to a 3-dim latent, concatenated with 3 commands into a 36-dim actor input" width="100%">
+</p>
+
+The rest of the contract, read from the shipped `policy.onnx` and `encoder.onnx`:
+
+| | Encoder | Policy |
+|---|---|---|
+| Input | `mlp_input`, shape `[300]` | `mlp_input`, shape `[36]` |
+| Output | `mlp_output`, shape `[3]` | `mlp_output`, shape `[6]` |
+| Opset | 13 | 13 |
+
+## One training iteration
+
+<p align="center">
+  <img src="doc/loop-en.png" alt="One PPO iteration: 8192 environments, 24 steps each, 196608 transitions, 5 epochs over 4 minibatches, then an update" width="100%">
+</p>
+
+## Quick start: read a trained policy in 30 seconds
+
+No GPU, no Isaac Gym, no build. The shipped point-foot policy is a ~760 KB ONNX
+file, and its interface is the whole story:
+
+```bash
+pip install onnx
+curl -L -o policy.onnx https://github.com/limxdynamics/tron1-rl-deploy-python/raw/main/controllers/model/PF_TRON1A/policy/isaacgym/policy.onnx
+python -c "import onnx; m = onnx.load('policy.onnx'); print([d.dim_value for d in m.graph.input[0].type.tensor_type.shape.dim], '->', [d.dim_value for d in m.graph.output[0].type.tensor_type.shape.dim])"
+```
+
+It prints `[36] -> [6]`: 30 observations plus a 3-dim latent plus 3 commands in,
+six joint targets out. To watch that policy move rather than read it, run it in
+[tron1-mujoco-sim](https://github.com/limxdynamics/tron1-mujoco-sim) — that needs
+no training at all.
 
 ## Installation
 
@@ -145,6 +221,12 @@ When simulating on GPU with a triangle-mesh terrain, the contact forces reported
 
 This project builds on [legged_gym](https://github.com/leggedrobotics/legged_gym) and [rsl_rl](https://github.com/leggedrobotics/rsl_rl) by the Robotic Systems Lab, ETH Zurich. We use their `LeggedRobot` implementation as the foundation of our environments.
 
-## Questions?
+## License
 
-Please [open an issue](https://github.com/limxdynamics/tron1-rl-isaacgym/issues). If this project helps your work, a ⭐ helps others find it.
+[BSD-3-Clause](LICENSE). This repository is a fork of
+[leggedrobotics/legged_gym](https://github.com/leggedrobotics/legged_gym), and the
+upstream copyright notices are retained in the source files.
+
+Security reports and contribution guidelines are handled at the organisation
+level: [SECURITY.md](https://github.com/limxdynamics/.github/blob/main/SECURITY.md),
+[CONTRIBUTING.md](https://github.com/limxdynamics/.github/blob/main/CONTRIBUTING.md).
