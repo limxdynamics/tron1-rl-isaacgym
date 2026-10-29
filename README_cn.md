@@ -63,6 +63,12 @@ NVIDIA 已停止维护 Isaac Gym、改推 Isaac Lab，新项目建议从
 `ROBOT_TYPE` 在 import 阶段就决定了加载哪个环境模块
 （`legged_gym/envs/__init__.py`）。
 
+<p align="center">
+  <img src="doc/tron1-isaacgym-demo.gif" width="900" alt="TRON1 点足、足板、轮足策略行走与转向">
+  <br>
+  <sub>由本仓库训练的策略，在 MuJoCo 中回放（sim-to-sim）。</sub>
+</p>
+
 ## TRON1 开源生态
 
 TRON1 有一整套开源仓库，覆盖从机器人模型到真机运行的全流程。这里是总导航，其他 TRON1 仓库都会链接到这里。

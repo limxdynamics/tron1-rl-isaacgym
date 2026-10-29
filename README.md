@@ -68,6 +68,12 @@ All three are trained with the same command and task name —
 `--task=pointfoot_flat` — because `ROBOT_TYPE` selects the environment module at
 import time (`legged_gym/envs/__init__.py`).
 
+<p align="center">
+  <img src="doc/tron1-isaacgym-demo.gif" width="900" alt="TRON1 point-foot, sole-foot and wheel-foot policies walking and turning">
+  <br>
+  <sub>Policies trained with this repository, played back in MuJoCo (sim-to-sim).</sub>
+</p>
+
 ## TRON1 open-source ecosystem
 
 TRON1 is supported by a set of open-source repositories, from robot models to the real robot. This section is the map; the other TRON1 repositories link back here.
